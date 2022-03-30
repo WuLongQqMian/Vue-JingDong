@@ -13,22 +13,6 @@ const getLocalCartList = () => {
 export default createStore({
   state: {
     cartList: getLocalCartList(),
-    // cartList: {},
-    // shopId: {
-    // shopName: '沃尔玛',
-    // productList:{
-    //   productId: {
-    //     _id: '1',
-    //     name: '番茄250g/份',
-    //     imgUrl: 'http://www.dell-lee.com/imgs/vue3/tomato.png',
-    //     sales: 10,
-    //     price: 33.6,
-    //     oldPrice: 39.6,
-    //     count: 2,
-    //   },
-    // }
-    // },
-    // 2: {},
   },
   mutations: {
     changeCartItemToCart(state, payload) {
@@ -84,6 +68,9 @@ export default createStore({
         }
       }
       setLocalCartList(state)
+    },
+    clearCartData(state, shopId) {
+      state.cartList[shopId].productList = {}
     },
   },
   actions: {},

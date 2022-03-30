@@ -3,17 +3,23 @@
     <div class="order__price">
       实付金额 <b>￥{{ calculations.price }}</b>
     </div>
-    <div class="order__btn">提交订单</div>
+    <div class="order__btn" @click="() => handleSubmitClick(true)">提交订单</div>
   </div>
-  <div class="mask">
-    <div class="mask__content">
+  <div class="mask" v-show="showConfirm" @click="() => handleSubmitClick(false)">
+    <div class="mask__content" @click.stop>
       <h3 class="mask__content__title">确认要离开收银台？</h3>
       <p class="mask__content__desc">请尽快完成支付，否则将被取消</p>
       <div class="mask__content__btns">
-        <div class="mask__content__btn mask__content__btn--first" @click="handleCancelOrder">
+        <div
+          class="mask__content__btn mask__content__btn--first"
+          @click="() => handleConfirmOrder(true)"
+        >
           取消订单
         </div>
-        <div class="mask__content__btn mask__content__btn--last" @click="handleConfirmOrder">
+        <div
+          class="mask__content__btn mask__content__btn--last"
+          @click="() => handleConfirmOrder(false)"
+        >
           确认支付
         </div>
       </div>
@@ -22,15 +28,18 @@
 </template>
 
 <script>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
+import { post } from '../../utils/request.js'
 export default {
   name: 'Order',
   setup() {
+    const router = useRouter()
     const route = useRoute()
-    const shopId = route.params.id
+    const shopId = parseInt(route.params.id, 10)
     const store = useStore()
+    const showConfirm = ref(false)
     const cartList = store.state.cartList
     const calculations = computed(() => {
       const productList = cartList[shopId]?.productList
@@ -50,13 +59,41 @@ export default {
       result.price = result.price.toFixed(2)
       return result
     })
-    const handleCancelOrder = () => {
-      alert('cancel')
+    const handleSubmitClick = (status) => {
+      showConfirm.value = status
     }
-    const handleConfirmOrder = () => {
-      alert('confirm')
+    const handleConfirmOrder = async (isCanceled) => {
+      const productList = cartList[shopId]?.productList || {}
+      const notEmptyProductList = {}
+      for (let i in productList) {
+        const product = productList[i]
+        if (product.count > 0) {
+          notEmptyProductList[i] = product
+        }
+      }
+      const shopName = cartList[shopId]?.shopName || ''
+      const products = []
+      for (let i in notEmptyProductList) {
+        products.push({
+          id: parseInt(notEmptyProductList[i]._id, 10),
+          num: notEmptyProductList[i].count,
+        })
+      }
+      try {
+        const result = await post('/api/order', {
+          addressId: 1,
+          shopId,
+          shopName,
+          isCanceled: false,
+          products,
+        })
+        if (result?.errno === 0) {
+          store.commit('clearCartData', shopId)
+          router.push({ name: 'OrderList' })
+        }
+      } catch (error) {}
     }
-    return { calculations, handleCancelOrder, handleConfirmOrder }
+    return { calculations, handleConfirmOrder, showConfirm, handleSubmitClick }
   },
 }
 </script>
